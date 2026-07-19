@@ -50,6 +50,13 @@
     height: 100%; width: 0%;
     background: #39ff88; box-shadow: 0 0 12px #39ff88cc;
   }
+
+  #debug-msg {
+    position: absolute; bottom: 16px; left: 16px; right: 16px;
+    font-size: 0.75rem; color: #ff5566; background: #000000cc;
+    padding: 8px 12px; border-radius: 8px; text-align: left;
+    word-break: break-word;
+  }
 </style>
 </head>
 <body>
@@ -78,6 +85,8 @@
     <div id="brow-meter-fill"></div>
   </div>
 
+  <div id="debug-msg" class="hidden"></div>
+
 </div>
 
 <script type="module">
@@ -95,6 +104,12 @@
   const video = document.getElementById('video');
   const browMeter = document.getElementById('brow-meter');
   const browMeterFill = document.getElementById('brow-meter-fill');
+  const debugMsg = document.getElementById('debug-msg');
+
+  function showDebug(err) {
+    debugMsg.textContent = String(err && err.message || err);
+    debugMsg.classList.remove('hidden');
+  }
 
   function show(name) {
     for (const key in screens) screens[key].classList.toggle('hidden', key !== name);
@@ -107,7 +122,10 @@
 
   // Preload wasm + model during the start screen (no gesture needed) so
   // camera start isn't stalled on network fetch.
-  const landmarkerPromise = createFaceLandmarker();
+  const landmarkerPromise = createFaceLandmarker().catch((err) => {
+    showDebug(err);
+    throw err;
+  });
 
   async function createFaceLandmarker() {
     const filesetResolver = await FilesetResolver.forVisionTasks(
@@ -151,25 +169,35 @@
     requestAnimationFrame(() => detectLoop(landmarker));
     if (video.currentTime === lastVideoTime) return;
     lastVideoTime = video.currentTime;
-    const result = landmarker.detectForVideo(video, performance.now());
-    const signal = browSignal(result.faceBlendshapes);
-    browMeterFill.style.width = `${Math.round(signal * 100)}%`;
+    try {
+      const result = landmarker.detectForVideo(video, performance.now());
+      const signal = browSignal(result.faceBlendshapes);
+      browMeterFill.style.width = `${Math.round(signal * 100)}%`;
+    } catch (err) {
+      showDebug(err);
+    }
   }
 
   async function startCamera() {
+    let stream;
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({
+      stream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: 'user' },
         audio: false,
       });
-      video.srcObject = stream;
-      video.classList.remove('hidden');
-      show(null); // hide all screens, camera feed takes over
+    } catch (err) {
+      show('denied');
+      return;
+    }
+    video.srcObject = stream;
+    video.classList.remove('hidden');
+    show(null); // hide all screens, camera feed takes over
+    try {
       const landmarker = await landmarkerPromise;
       browMeter.classList.remove('hidden');
       detectLoop(landmarker);
     } catch (err) {
-      show('denied');
+      showDebug(err);
     }
   }
 
