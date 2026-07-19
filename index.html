@@ -39,8 +39,8 @@
      eyebrow/eye band. Detection reads the raw (unzoomed) video pixels,
      so this is safe to retune without touching detection code. */
   :root {
-    --eye-zoom: 2.2;
-    --eye-focus-y: 32%;
+    --eye-zoom: 1.6;
+    --eye-focus-y: 70%;
   }
   #video {
     position: absolute; inset: 0;
@@ -54,7 +54,7 @@
   #brow-guide {
     position: absolute; left: 50%; top: var(--eye-focus-y);
     transform: translate(-50%, -50%);
-    width: 60%; aspect-ratio: 3 / 1;
+    width: 78%; aspect-ratio: 2.2 / 1;
     border: 2px dashed #39ff88aa; border-radius: 999px;
     display: flex; align-items: flex-end; justify-content: center;
     padding-bottom: 6px;
