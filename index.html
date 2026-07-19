@@ -168,6 +168,7 @@
   function detectLoop(landmarker) {
     requestAnimationFrame(() => detectLoop(landmarker));
     if (video.currentTime === lastVideoTime) return;
+    if (video.readyState < 2 || video.videoWidth === 0) return; // frame not ready yet
     lastVideoTime = video.currentTime;
     try {
       const result = landmarker.detectForVideo(video, performance.now());
