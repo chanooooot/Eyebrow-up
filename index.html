@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Browball</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0; width: 100%; height: 100%;
+    background: #0a0a12; color: #fff;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    overflow: hidden;
+  }
+  #app { position: fixed; inset: 0; }
+
+  .screen {
+    position: absolute; inset: 0;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    text-align: center; padding: 24px;
+  }
+  .hidden { display: none !important; }
+
+  h1 {
+    font-size: 2.5rem; margin: 0 0 12px;
+    color: #39ff88; text-shadow: 0 0 12px #39ff8899;
+  }
+  p { font-size: 1rem; color: #ccc; margin: 0 0 28px; max-width: 320px; }
+
+  button {
+    font-size: 1.1rem; font-weight: 600; padding: 14px 36px;
+    border: none; border-radius: 999px;
+    background: #39ff88; color: #0a0a12;
+    box-shadow: 0 0 20px #39ff8866;
+  }
+  button:active { transform: scale(0.96); }
+
+  #video {
+    position: absolute; inset: 0;
+    width: 100%; height: 100%; object-fit: cover;
+    transform: scaleX(-1);
+  }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <div id="screen-inapp" class="screen hidden">
+    <h1>Open in your browser</h1>
+    <p>This app needs your camera, which chat apps block. Tap the "•••" menu and choose "Open in Safari" or "Open in Chrome".</p>
+  </div>
+
+  <div id="screen-start" class="screen">
+    <h1>Browball</h1>
+    <p>Raise your eyebrows to hit the balls. Camera stays on your device — nothing is uploaded.</p>
+    <button id="btn-start">Start</button>
+  </div>
+
+  <div id="screen-denied" class="screen hidden">
+    <h1>Camera needed</h1>
+    <p>Browball needs camera access to see your eyebrows. Check your browser's site settings and allow the camera, then try again.</p>
+    <button id="btn-retry">Try again</button>
+  </div>
+
+  <video id="video" class="hidden" autoplay muted playsinline></video>
+
+</div>
+
+<script>
+  // ponytail: step 1 skeleton only — no MediaPipe, no game loop yet
+  const screens = {
+    inapp: document.getElementById('screen-inapp'),
+    start: document.getElementById('screen-start'),
+    denied: document.getElementById('screen-denied'),
+  };
+  const video = document.getElementById('video');
+
+  function show(name) {
+    for (const key in screens) screens[key].classList.toggle('hidden', key !== name);
+  }
+
+  function isInAppBrowser() {
+    const ua = navigator.userAgent;
+    return /Line\//i.test(ua) || /FBAN|FBAV/i.test(ua) || /Instagram/i.test(ua);
+  }
+
+  async function startCamera() {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'user' },
+        audio: false,
+      });
+      video.srcObject = stream;
+      video.classList.remove('hidden');
+      show(null); // hide all screens, camera feed takes over
+    } catch (err) {
+      show('denied');
+    }
+  }
+
+  document.getElementById('btn-start').addEventListener('click', startCamera);
+  document.getElementById('btn-retry').addEventListener('click', startCamera);
+
+  if (isInAppBrowser()) {
+    show('inapp');
+  }
+</script>
+</body>
+</html>
