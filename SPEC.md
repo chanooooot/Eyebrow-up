@@ -52,7 +52,7 @@ Eyebrow-controlled mini webgame. Balls fall from the top of the screen toward a 
 2. **In-app browser overlay** — if LINE/FB/IG in-app browser detected (user-agent check), full-screen prompt: "Open in Safari/Chrome" with platform-specific instructions. Game does not attempt to run. LINE-specific escape hatch: URLs carrying `?openExternalBrowser=1` are auto-opened in the external browser by the LINE in-app browser — all shared links must include this param, so most LINE recipients never see the overlay (overlay stays as fallback for FB/IG and stripped params).
 3. **Camera permission** → denied = friendly explainer screen with retry.
 4. **Calibration** (Section 4).
-5. **Gameplay** — mirrored camera feed as full background; balls (emoji or plain circles) fall over it; hit-zone line near bottom; HUD: score, lives, small live brow-meter bar.
+5. **Gameplay** — mirrored camera feed as background, zoomed/cropped to the eyebrow/eye band (not full face); balls (emoji or plain circles) fall over it; hit-zone line near bottom; HUD: score, lives, small live brow-meter bar.
    - **Auto-pause:** game pauses when the page is backgrounded (`visibilitychange`) or when no face is detected for >~500 ms ("face not found" message). Resume on tap / face re-acquired. Prevents unfair misses from tab switches, notifications, or leaning out of frame — lives forgive frame-level noise only.
 6. **Game over** — score, "Play again", "Share".
 
@@ -127,5 +127,5 @@ After tuning constants on 2 real devices: if brow detection still feels unfair (
 | Face snapshot on card | Opt-in only, client-side only | Privacy; never auto, never uploaded |
 | Stack | Single HTML, vanilla JS, Canvas 2D | ~300-line game; no build system = nothing to over-engineer; maximally portable |
 | Hosting | GitHub Pages | Ham's pick; free, HTTPS, static-file-native |
-| Camera on screen | Full mirrored background | The face is the game; enables share-card charm |
+| Camera on screen | Mirrored background, zoomed/cropped to eyebrow/eye band (not full face) | Ham's call 2026-07-19 — keeps focus on the mechanic, not a full selfie feed; share-card charm comes from the snapshot, not the live view |
 | Audio | Cut entirely | Ham's call — not even a toggle in v1 |
