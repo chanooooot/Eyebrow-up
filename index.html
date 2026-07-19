@@ -49,6 +49,20 @@
     transform-origin: 50% var(--eye-focus-y);
   }
 
+  /* Anchored at --eye-focus-y — the point the video zoom keeps fixed on
+     screen — so the guide always frames whatever the crop is centered on. */
+  #brow-guide {
+    position: absolute; left: 50%; top: var(--eye-focus-y);
+    transform: translate(-50%, -50%);
+    width: 60%; aspect-ratio: 3 / 1;
+    border: 2px dashed #39ff88aa; border-radius: 999px;
+    display: flex; align-items: flex-end; justify-content: center;
+    padding-bottom: 6px;
+  }
+  #brow-guide span {
+    font-size: 0.7rem; color: #39ff88cc; text-shadow: 0 0 6px #000;
+  }
+
   #brow-meter {
     position: absolute; top: 16px; left: 16px; right: 16px;
     height: 14px; border-radius: 999px;
@@ -89,6 +103,10 @@
 
   <video id="video" class="hidden" autoplay muted playsinline></video>
 
+  <div id="brow-guide" class="hidden">
+    <span>keep eyebrows in the oval</span>
+  </div>
+
   <div id="brow-meter" class="hidden">
     <div id="brow-meter-fill"></div>
   </div>
@@ -110,6 +128,7 @@
     denied: document.getElementById('screen-denied'),
   };
   const video = document.getElementById('video');
+  const browGuide = document.getElementById('brow-guide');
   const browMeter = document.getElementById('brow-meter');
   const browMeterFill = document.getElementById('brow-meter-fill');
   const debugMsg = document.getElementById('debug-msg');
@@ -200,6 +219,7 @@
     }
     video.srcObject = stream;
     video.classList.remove('hidden');
+    browGuide.classList.remove('hidden');
     show(null); // hide all screens, camera feed takes over
     try {
       const landmarker = await landmarkerPromise;
