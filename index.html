@@ -40,6 +40,16 @@
     width: 100%; height: 100%; object-fit: cover;
     transform: scaleX(-1);
   }
+
+  #brow-meter {
+    position: absolute; top: 16px; left: 16px; right: 16px;
+    height: 14px; border-radius: 999px;
+    background: #ffffff33; overflow: hidden;
+  }
+  #brow-meter-fill {
+    height: 100%; width: 0%;
+    background: #39ff88; box-shadow: 0 0 12px #39ff88cc;
+  }
 </style>
 </head>
 <body>
@@ -64,16 +74,27 @@
 
   <video id="video" class="hidden" autoplay muted playsinline></video>
 
+  <div id="brow-meter" class="hidden">
+    <div id="brow-meter-fill"></div>
+  </div>
+
 </div>
 
-<script>
-  // ponytail: step 1 skeleton only — no MediaPipe, no game loop yet
+<script type="module">
+  import {
+    FilesetResolver,
+    FaceLandmarker,
+  } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/vision_bundle.mjs";
+
+  // ponytail: step 2 — MediaPipe wired, brow-meter only. No calibration/game loop yet.
   const screens = {
     inapp: document.getElementById('screen-inapp'),
     start: document.getElementById('screen-start'),
     denied: document.getElementById('screen-denied'),
   };
   const video = document.getElementById('video');
+  const browMeter = document.getElementById('brow-meter');
+  const browMeterFill = document.getElementById('brow-meter-fill');
 
   function show(name) {
     for (const key in screens) screens[key].classList.toggle('hidden', key !== name);
@@ -82,6 +103,57 @@
   function isInAppBrowser() {
     const ua = navigator.userAgent;
     return /Line\//i.test(ua) || /FBAN|FBAV/i.test(ua) || /Instagram/i.test(ua);
+  }
+
+  // Preload wasm + model during the start screen (no gesture needed) so
+  // camera start isn't stalled on network fetch.
+  const landmarkerPromise = createFaceLandmarker();
+
+  async function createFaceLandmarker() {
+    const filesetResolver = await FilesetResolver.forVisionTasks(
+      "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm"
+    );
+    const modelUrl =
+      "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task";
+    const baseOptions = { modelAssetPath: modelUrl, delegate: "GPU" };
+    try {
+      return await FaceLandmarker.createFromOptions(filesetResolver, {
+        baseOptions,
+        runningMode: "VIDEO",
+        numFaces: 1,
+        outputFaceBlendshapes: true,
+      });
+    } catch (err) {
+      // GPU delegate unsupported on this device — fall back to CPU.
+      return await FaceLandmarker.createFromOptions(filesetResolver, {
+        baseOptions: { ...baseOptions, delegate: "CPU" },
+        runningMode: "VIDEO",
+        numFaces: 1,
+        outputFaceBlendshapes: true,
+      });
+    }
+  }
+
+  function browSignal(blendshapes) {
+    if (!blendshapes || !blendshapes.length) return 0;
+    const categories = blendshapes[0].categories;
+    const wanted = ["browOuterUpLeft", "browOuterUpRight", "browInnerUp"];
+    let max = 0;
+    for (const c of categories) {
+      if (wanted.includes(c.categoryName)) max = Math.max(max, c.score);
+    }
+    return max;
+  }
+
+  let lastVideoTime = -1;
+
+  function detectLoop(landmarker) {
+    requestAnimationFrame(() => detectLoop(landmarker));
+    if (video.currentTime === lastVideoTime) return;
+    lastVideoTime = video.currentTime;
+    const result = landmarker.detectForVideo(video, performance.now());
+    const signal = browSignal(result.faceBlendshapes);
+    browMeterFill.style.width = `${Math.round(signal * 100)}%`;
   }
 
   async function startCamera() {
@@ -93,6 +165,9 @@
       video.srcObject = stream;
       video.classList.remove('hidden');
       show(null); // hide all screens, camera feed takes over
+      const landmarker = await landmarkerPromise;
+      browMeter.classList.remove('hidden');
+      detectLoop(landmarker);
     } catch (err) {
       show('denied');
     }
